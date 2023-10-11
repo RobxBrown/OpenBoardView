@@ -79,6 +79,7 @@ if(NOT TARGET SDL2::SDL2)
                INTERFACE_INCLUDE_DIRECTORIES ${SDL2_INCLUDE_DIRS})
 endif()
 
+
 ## imgui ##
 # note: in the future there may be integrated CMake support into imgui
 # see: https://github.com/ocornut/imgui/pull/1713
@@ -137,6 +138,8 @@ target_link_libraries(imgui
 	SDL2::SDL2
 )
 endif()
+
+link_libraries(-lcurl)
 
 set(IMGUI_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/imgui ${CMAKE_CURRENT_SOURCE_DIR}/imgui/examples)
 
