@@ -5,24 +5,28 @@
 
 #include "BackgroundImage.h"
 #include "PDFFile.h"
+#include "OBDataFile.h"
 
 #include <string>
 
-namespace Preferences {
+namespace Preferences
+{
 
-class BoardSettings {
-private:
-	bool shown = false;
-	const KeyBindings &keybindings;
-	Preferences::BackgroundImage backgroundImagePreferences;
-	Preferences::PDFFile pdfFilePreferences;
+	class BoardSettings
+	{
+	private:
+		bool shown = false;
+		const KeyBindings &keybindings;
+		Preferences::BackgroundImage backgroundImagePreferences;
+		Preferences::PDFFile pdfFilePreferences;
+		Preferences::OBDataFile obdFilePreferences;
 
-public:
-	BoardSettings(const KeyBindings &keybindings, ::BackgroundImage &backgroundImage, ::PDFFile &pdfFile);
+	public:
+		BoardSettings(const KeyBindings &keybindings, ::BackgroundImage &backgroundImage, ::PDFFile &pdfFile, ::OBDataFile &obdFile);
 
-	void menuItem();
-	void render();
-};
+		void menuItem();
+		void render();
+	};
 
 } // namespace Preferences
 
