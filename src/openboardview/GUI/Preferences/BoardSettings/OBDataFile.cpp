@@ -70,6 +70,12 @@ void OBDataFile::render(bool shown) {
 		if(ImGui::Button("Select##searchResult")) {
 			//do something with search result
 		}
+
+		std::string path = obdFile.path.string();
+		ImGui::Text("OBData path" + path);
+		if(ImGui::Button"Download data##download") {
+			// download the data
+		}
 	}
 
 	wasShown = shown;
