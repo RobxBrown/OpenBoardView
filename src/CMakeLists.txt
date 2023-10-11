@@ -3,7 +3,7 @@ option(ENABLE_GL1 "Build OpenGL 1 renderer." ON)
 option(ENABLE_GL3 "Build OpenGL 3 renderer." ON)
 option(ENABLE_GLES2 "Configure OpenGL 3 renderer to be OpenGL ES 2.0 compatible." OFF)
 
-if(NOT WIN32 OR MINGW)
+if(NOT APPLE AND NOT WIN32 OR MINGW)
 	find_package(PkgConfig REQUIRED)
 endif()
 
@@ -12,11 +12,11 @@ find_path(UTF8_INCLUDE_DIR
 	NAMES "utf8.h"
 	PATH_SUFFIXES "utf8")
 if(NOT UTF8_INCLUDE_DIR)
-  execute_process(
-    COMMAND git submodule update --init src/utf8
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    )
-  set(UTF8_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/utf8)
+	execute_process(
+		COMMAND git submodule update --init src/utf8
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+		)
+	set(UTF8_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/utf8)
 endif()
 
 ## zlib ##
@@ -67,16 +67,20 @@ add_definitions(-DENABLE_SDL2)
 
 # Create namespace targets for system with SDL2 older than 2.0.12
 if(NOT TARGET SDL2::SDL2)
-       add_library(SDL2::SDL2 SHARED IMPORTED)
-       find_library(SDL2_LIBRARY SDL2)
-       set_target_properties(SDL2::SDL2 PROPERTIES
-               IMPORTED_LOCATION ${SDL2_LIBRARY}
-               INTERFACE_INCLUDE_DIRECTORIES ${SDL2_INCLUDE_DIRS})
-       add_library(SDL2::SDL2main STATIC IMPORTED)
-       find_library(SDL2MAIN_LIBRARY SDL2main)
-       set_target_properties(SDL2::SDL2main PROPERTIES
-               IMPORTED_LOCATION ${SDL2MAIN_LIBRARY}
-               INTERFACE_INCLUDE_DIRECTORIES ${SDL2_INCLUDE_DIRS})
+	add_library(SDL2::SDL2 SHARED IMPORTED)
+	find_library(SDL2_LIBRARY SDL2)
+	set_target_properties(SDL2::SDL2 PROPERTIES
+		IMPORTED_LOCATION ${SDL2_LIBRARY}
+		INTERFACE_INCLUDE_DIRECTORIES ${SDL2_INCLUDE_DIRS})
+	find_library(SDL2MAIN_LIBRARY SDL2main)
+	if(SDL2MAIN_LIBRARY)
+		add_library(SDL2::SDL2main STATIC IMPORTED)
+		set_target_properties(SDL2::SDL2main PROPERTIES
+			IMPORTED_LOCATION ${SDL2MAIN_LIBRARY}
+			INTERFACE_INCLUDE_DIRECTORIES ${SDL2_INCLUDE_DIRS})
+	else()
+		add_library(SDL2::SDL2main INTERFACE IMPORTED)
+	endif()
 endif()
 
 
@@ -154,17 +158,20 @@ if(((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "G
 	message(CHECK_PASS "available")
 	set(CMAKE_CXX_STANDARD 17)
 	set(FILESYSTEM_LIBRARIES)
+	add_definitions(-DWITH_STD_FILESYSTEM)
 # Clang 8 requires explicit linking with lc++fs. AppleClang 11.0 is Clang 8.0
 elseif((CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.0))
 	#OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 11.0))
 	message(CHECK_PASS "available")
 	set(CMAKE_CXX_STANDARD 17)
 	set(FILESYSTEM_LIBRARIES lc++fs)
+	add_definitions(-DWITH_STD_FILESYSTEM)
 # GCC 8 requires explicit linking with stdc++fs
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8.0)
 	message(CHECK_PASS "available")
 	set(CMAKE_CXX_STANDARD 17)
 	set(FILESYSTEM_LIBRARIES stdc++fs)
+	add_definitions(-DWITH_STD_FILESYSTEM)
 else() # Other compiler/version are unsupported, use external lib
 	message(CHECK_FAIL "not available, using ghc::filesystem")
 	execute_process(
@@ -176,7 +183,7 @@ else() # Other compiler/version are unsupported, use external lib
 endif()
 
 ## stb ##
-if(NOT WIN32 OR MINGW)
+if(NOT APPLE AND NOT WIN32 OR MINGW)
 	pkg_check_modules(STB stb)
 endif()
 

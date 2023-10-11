@@ -22,7 +22,7 @@ endif()
 # VERSION must be up to 4 groups of digits separated by a period.
 # major.90 are alpha releases
 # major.95 are beta releases
-project(OpenBoardView VERSION 9.90.0)
+project(OpenBoardView VERSION 9.95.0)
 
 # Include our project variables
 include("version.cmake")
@@ -153,7 +153,8 @@ elseif(UNIX)
 	    "/usr/share/icons/hicolor/scalable"
 	    "/usr/share/icons/hicolor/scalable/apps"
 	    "/usr/share/mime"
-	    "/usr/share/mime/packages")
+	    "/usr/share/mime/packages"
+	    "/usr/share/metainfo")
 elseif(WIN32)
 	set(CPACK_GENERATOR ZIP CACHE STRING "List of generators to build packages with")
 	set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY FALSE)
