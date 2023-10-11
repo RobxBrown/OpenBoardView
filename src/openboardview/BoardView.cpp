@@ -5,11 +5,12 @@
 #include "utils.h"
 #include "version.h"
 
-#include <cmath>
-#include <iostream>
 #include <climits>
-#include <memory>
+#include <cmath>
 #include <cstdio>
+#include <curl/curl.h>
+#include <iostream>
+#include <memory>
 #ifdef ENABLE_SDL2
 #include <SDL.h>
 #endif
@@ -482,6 +483,12 @@ int BoardView::LoadFile(const filesystem::path &filepath) {
 
 				pdfBridge.OpenDocument(pdfFile);
 
+				auto obdfilepath = filepath;
+				obdfilepath.replace_extension("obdata");
+				obdFile.loadFromConfig(obdfilepath);
+				obdBridge.OpenDocument(obdFile);
+				obdata.Load(obdfilepath);
+				
 				/*
 				 * Set pins to a known lower size, they get resized
 				 * in DrawParts() when the component is analysed
@@ -1242,6 +1249,7 @@ void BoardView::ShowInfoPane(void) {
 		if (ImGui::Checkbox("Select all parts on net", &infoPanelSelectPartsOnNet)) {
 			obvconfig.WriteBool("infoPanelSelectPartsOnNet", infoPanelSelectPartsOnNet);
 		}
+		obdata.DrawInfoPane();
 	} else {
 		ImGui::Text("No board currently loaded.");
 	}
@@ -2206,6 +2214,9 @@ void BoardView::Update() {
 			ImGui::OpenPopup("Error opening file");
 			m_lastFileOpenWasInvalid = false;
 		}
+
+		obdata.DrawModalDialog();
+
 		ImGui::EndMainMenuBar();
 	}
 
@@ -3864,7 +3875,36 @@ inline void BoardView::DrawParts(ImDrawList *draw) {
 					draw->ChannelsSetCurrent(kChannelText);
 					draw->AddText(font, maxfontsize, pos, m_colors.partTextColor, part->name.c_str());
 					draw->ChannelsSetCurrent(kChannelPolylines);
-				}
+
+					//
+					//Draw part designator
+					//
+					text = obdata.GetPartValue(part->name);
+					text_size_normalized = font->CalcTextSizeA(1.0f, FLT_MAX, 0.0f, text.c_str());
+
+					// Find max font size to fit text inside bounding box
+					maxfontwidth = maxwidth / text_size_normalized.x;
+					maxfontheight = maxheight / text_size_normalized.y;
+					maxfontsize   = min(maxfontwidth, maxfontheight);
+
+					text_size = {text_size_normalized.x * maxfontsize, text_size_normalized.y * maxfontsize};
+
+					// Center text
+					pos = CoordToScreen(part->centerpoint.x,
+					                           part->centerpoint.y); // Computed previously during bounding box generation
+					pos.x -= text_size.x * 0.5f;
+					pos.y -= text_size.y * 0.20f;
+
+					if (maxfontsize < font->FontSize * 0.75) {
+						font = ImGui::GetIO().Fonts->Fonts[2]; // Use smaller font for part name
+					} else if (maxfontsize > font->FontSize * 1.5 && ImGui::GetIO().Fonts->Fonts[1]->FontSize > font->FontSize) {
+						font = ImGui::GetIO().Fonts->Fonts[1]; // Use larger font for part name
+					}
+
+					draw->ChannelsSetCurrent(kChannelText);
+					draw->AddText(font, maxfontsize, pos, m_colors.partTextColor, text.c_str());
+					draw->ChannelsSetCurrent(kChannelPolylines);
+				}				
 
 				/*
 				 * Draw the highlighted text for selected part
@@ -3910,6 +3950,8 @@ inline void BoardView::DrawParts(ImDrawList *draw) {
 	} // for each part
 }
 
+
+
 void BoardView::DrawPartTooltips(ImDrawList *draw) {
 	ImVec2 spos = ImGui::GetMousePos();
 	ImVec2 pos  = ScreenToCoord(spos.x, spos.y);
@@ -3922,7 +3964,7 @@ void BoardView::DrawPartTooltips(ImDrawList *draw) {
 	 * determine if we're hovering over a testpad
 	 */
 	for (auto &pin : m_board->Pins()) {
-
+		if(pin->board_side != m_current_side)continue;
 		if (pin->type == Pin::kPinTypeTestPad) {
 			float dx   = pin->position.x - pos.x;
 			float dy   = pin->position.y - pos.y;
@@ -3934,7 +3976,7 @@ void BoardView::DrawPartTooltips(ImDrawList *draw) {
 				ImGui::PushStyleColor(ImGuiCol_Text, m_colors.annotationPopupTextColor);
 				ImGui::PushStyleColor(ImGuiCol_PopupBg, m_colors.annotationPopupBackgroundColor);
 				ImGui::BeginTooltip();
-				ImGui::Text("TP[%s]%s", pin->name.c_str(), pin->net->name.c_str());
+				obdata.ShowTPTooltip(pin);
 				ImGui::EndTooltip();
 				ImGui::PopStyleColor(2);
 				break;
@@ -3983,6 +4025,7 @@ void BoardView::DrawPartTooltips(ImDrawList *draw) {
 			currentlyHoveredPin = nullptr;
 
 			for (auto &pin : currentlyHoveredPart->pins) {
+				if (pin->board_side != m_current_side) continue;
 				// auto p     = pin;
 				float dx   = pin->position.x - pos.x;
 				float dy   = pin->position.y - pos.y;
@@ -3998,20 +4041,14 @@ void BoardView::DrawPartTooltips(ImDrawList *draw) {
 
 			if (currentlyHoveredPin)
 				draw->AddCircle(CoordToScreen(currentlyHoveredPin->position.x, currentlyHoveredPin->position.y),
-				                currentlyHoveredPin->diameter * m_scale,
-				                m_colors.pinHaloColor,
-				                32,
-				                pinHaloThickness);
+				                currentlyHoveredPin->diameter * m_scale, m_colors.pinHaloColor, 32, pinHaloThickness);
 			ImGui::PushStyleColor(ImGuiCol_Text, m_colors.annotationPopupTextColor);
 			ImGui::PushStyleColor(ImGuiCol_PopupBg, m_colors.annotationPopupBackgroundColor);
 			ImGui::BeginTooltip();
 			if (currentlyHoveredPin) {
-				ImGui::Text("%s\n[%s]%s",
-				            currentlyHoveredPart->name.c_str(),
-				            (currentlyHoveredPin ? currentlyHoveredPin->name.c_str() : " "),
-				            (currentlyHoveredPin ? currentlyHoveredPin->net->name.c_str() : " "));
+				obdata.ShowPinTooltip(currentlyHoveredPin, currentlyHoveredPart);
 			} else {
-				ImGui::Text("%s", currentlyHoveredPart->name.c_str());
+				obdata.ShowPartTooltip(currentlyHoveredPart);
 			}
 			ImGui::EndTooltip();
 			ImGui::PopStyleColor(2);

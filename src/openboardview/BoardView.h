@@ -11,12 +11,15 @@
 #include "GUI/Preferences/Keyboard.h"
 #include "GUI/BackgroundImage.h"
 #include "GUI/Preferences/BoardSettings/BoardSettings.h"
+#include "OBDataBridge/OBDataBridge.h"
+#include "OBDataBridge/OBDataFile.h"
 #include "PDFBridge/PDFBridge.h"
 #include "PDFBridge/PDFBridgeEvince.h"
 #include "PDFBridge/PDFBridgeSumatra.h"
 #include "PDFBridge/PDFFile.h"
 #include <cstdint>
 #include <vector>
+#include "OBData.h"
 
 #define DPIF(x) (((x)*dpi) / 100.f)
 #define DPI(x) (((x)*dpi) / 100)
@@ -134,7 +137,7 @@ struct BoardView {
 	SpellCorrector scparts;
 	KeyBindings keybindings;
 	Preferences::Keyboard keyboardPreferences{keybindings, obvconfig};
-	Preferences::BoardSettings boardSettings{keybindings, backgroundImage, pdfFile};
+	Preferences::BoardSettings boardSettings{keybindings, backgroundImage, pdfFile, obdFile};
 
 #ifdef ENABLE_PDFBRIDGE_EVINCE
 	PDFBridgeEvince pdfBridge;
@@ -144,6 +147,11 @@ struct BoardView {
 	PDFBridge pdfBridge; // Dummy implementation
 #endif
 	PDFFile pdfFile{pdfBridge};
+
+	/* Open Board Data */
+	OBDataBridge obdBridge;
+	OBDataFile obdFile{obdBridge};
+	OBData obdata;
 
 	bool debug                   = false;
 	int history_file_has_changed = 0;
@@ -251,6 +259,7 @@ struct BoardView {
 	//	vector<Net *> m_netHiglighted;
 	SharedVector<Pin> m_pinHighlighted;
 	SharedVector<Component> m_partHighlighted;
+	SharedVector<OBDataComponentDatum> m_obdataPart;
 	char m_cachedDrawList[sizeof(ImDrawList)];
 	ImVector<char> m_cachedDrawCommands;
 	SharedVector<Net> m_nets;
@@ -315,7 +324,6 @@ struct BoardView {
 
 	void ShowNetList(bool *p_open);
 	void ShowPartList(bool *p_open);
-
 	void Update();
 	void HandleInput();
 	void RenderOverlay();
