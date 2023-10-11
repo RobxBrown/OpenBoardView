@@ -11,6 +11,7 @@
 #include "GUI/Preferences/Keyboard.h"
 #include "GUI/BackgroundImage.h"
 #include "GUI/Preferences/BoardSettings/BoardSettings.h"
+#include "GUI/Preferences/BoardSettings/OBDataFile.h"
 #include "OBDataBridge/OBDataBridge.h"
 #include "OBDataBridge/OBDataFile.h"
 #include "PDFBridge/PDFBridge.h"
