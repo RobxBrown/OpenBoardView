@@ -65,6 +65,7 @@ set(SOURCES
 	vectorhulls.cpp
 	history.cpp
 	utils.cpp
+	OBData.cpp
 	BoardView.cpp
 	Board.cpp
 	BRDBoard.cpp
@@ -94,9 +95,12 @@ set(SOURCES
 	GUI/Preferences/BoardSettings/BackgroundImage.cpp
 	GUI/Preferences/BoardSettings/BoardSettings.cpp
 	GUI/Preferences/BoardSettings/PDFFile.cpp
+	GUI/Preferences/BoardSettings/OBDataFile.cpp
 	GUI/Preferences/Keyboard.cpp
 	PDFBridge/PDFBridge.cpp
 	PDFBridge/PDFFile.cpp
+	OBDataBridge/OBDataBridge.cpp
+	OBDataBridge/OBDataFile.cpp
 	main_opengl.cpp
 )
 
